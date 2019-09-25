@@ -1,7 +1,6 @@
 package main
 
 import (
-	"strings"
 	"testing"
 )
 
@@ -18,6 +17,7 @@ var domains = []string{
 	"testing.com",
 	"example.com",
 	"mising.info",
+	"a2mi.security",
 }
 
 func buildSearches() []string {
@@ -30,6 +30,12 @@ func buildSearches() []string {
 		"grooveid.com",
 		"groove.id",
 		"missing.info",
+		"cisco.com",
+		"duosecurity.com",
+		"facebook.com",
+		"gmail.com",
+		"github.com",
+		"gitlab.security",
 	}
 	var results = searchSources
 	for _, s := range searchSources {
@@ -54,12 +60,12 @@ func BenchmarkNaive(b *testing.B) {
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 		for _, d := range domains {
-			result := naiveSearch(&searches, d)
-			b.StopTimer()
-			if n == 0 && len(result) > 0 {
-				println(d, "->", strings.Join(result, ","))
-			}
-			b.StartTimer()
+			_ = naiveSearch(&searches, d)
+			//b.StopTimer()
+			//if n == 0 && len(result) > 0 {
+			//	println(d, "->", strings.Join(result, ","))
+			//}
+			//b.StartTimer()
 		}
 	}
 }
@@ -76,35 +82,12 @@ func BenchmarkTrie(b *testing.B) {
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 		for _, d := range domains {
-			result := trieSearch(searchTrie, d)
-			b.StopTimer()
-			if n == 0 && len(result) > 0 {
-				println(d, "->", strings.Join(result, ","))
-			}
-			b.StartTimer()
-		}
-	}
-}
-
-func TestUsingTrieSearchDoesNotAlterTrie(t *testing.T) {
-	searches := buildSearches()
-	searchTrie := NewRuneTrie()
-	for _, s := range searches {
-		searchTrie.Put(s, true)
-	}
-	searchTrie2 := NewRuneTrie()
-	for _, s := range searches {
-		searchTrie2.Put(s, true)
-	}
-
-	_ = trieSearch(searchTrie, "microsoft.com")
-
-	if len(searchTrie.children) != len(searchTrie2.children) {
-		t.Error("searching the trieSearch altered len(children)")
-	}
-	for k := range searchTrie.children {
-		if searchTrie2.children[k] == nil {
-			t.Errorf("key %v exists in trieSearch used for search, but not a newly created trieSearch", k)
+			_ = trieSearch(searchTrie, d)
+			//b.StopTimer()
+			//if n == 0 && len(result) > 0 {
+			//	println(d, "->", strings.Join(result, ","))
+			//}
+			//b.StartTimer()
 		}
 	}
 }
@@ -124,6 +107,8 @@ func TestTrieSearch(t *testing.T) {
 		"www-grooveid.online.tk": {"grooveid","rooveid","groovei"},
 		"dzombak.com": {},
 		"mising.info": {"mising.info"},
+		"hjkhgrdhghghghmcimicrospfccm8978787097890yiuouihhjklfgjhklfgjhkfgkjhlfgdjhklfgdhjklfgdjm.xxx": {},
+		"face-book.com": {"face-book.com"},
 	}
 
 	for domain, expectedResult := range expected {
@@ -137,6 +122,24 @@ func TestTrieSearch(t *testing.T) {
 				t.Errorf("%s: expected result %s is missing", domain, s)
 			}
 		}
+	}
+}
+
+func TestTrieSearchDoesNotAlterTrie(t *testing.T) {
+	searches := buildSearches()
+	searchTrie := NewRuneTrie()
+	for _, s := range searches {
+		searchTrie.Put(s, true)
+	}
+	searchTrie2 := NewRuneTrie()
+	for _, s := range searches {
+		searchTrie2.Put(s, true)
+	}
+
+	_ = trieSearch(searchTrie, "microsoft.com")
+
+	if !searchTrie.Equals(searchTrie2) {
+		t.Error("searching the RuneTrie altered it")
 	}
 }
 
@@ -159,5 +162,31 @@ func TestTrieSearchMatchesNaiveSearch(t *testing.T) {
 				t.Errorf("%s: naive result %s is missing from trie result", d, s)
 			}
 		}
+	}
+}
+
+func TestTrieEquals(t *testing.T) {
+	a := NewRuneTrie()
+	b := NewRuneTrie()
+
+	a.Put("asdfgh", true)
+	a.Put("asdfjk", 1)
+	b.Put("asdfgh", true)
+	b.Put("asdfjk", 1)
+
+	if !a.Equals(b) {
+		t.Error("tries with the same members should be equal")
+	}
+
+	a.Put("asfghjk", 2)
+
+	if a.Equals(b) {
+		t.Error("tries with different members should not be equal")
+	}
+
+	b.Put("asfghjk", 3)
+
+	if a.Equals(b) {
+		t.Error("tries with different values for the same member should not be equal")
 	}
 }

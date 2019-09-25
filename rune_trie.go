@@ -118,3 +118,25 @@ func (trie *RuneTrie) walk(key string, walker WalkFunc) error {
 func (trie *RuneTrie) isLeaf() bool {
 	return len(trie.children) == 0
 }
+
+// cdz additions:
+
+func (trie * RuneTrie) Equals(other *RuneTrie) bool {
+	if trie == nil && other == nil {
+		return true
+	} else if trie == nil || other == nil {
+		return false
+	}
+	if trie.value != other.value {
+		return false
+	}
+	if len(trie.children) != len(other.children) {
+		return false
+	}
+	for key, child := range trie.children {
+		if !child.Equals(other.children[key]) {
+			return false
+		}
+	}
+	return true
+}
